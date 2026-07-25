@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SchoolCoop - ระบบสหกรณ์โรงเรียน</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Prompt for Thai Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#3b82f6',
+                        'primary-hover': '#2563eb',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        
+        /* Smooth Accordion Transition */
+        .accordion-content {
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .accordion-content.open {
+            max-height: 500px; /* Arbitrary large height */
+            opacity: 1;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Loader */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- ================= VIEW 1: หน้าเข้าสู่ระบบ (LOGIN) ================= -->
+    <div id="view-login" class="flex-1 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 border border-slate-100">
+            <div class="text-center mb-8">
+                <div class="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="ph ph-storefront text-4xl text-primary"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-slate-900">ระบบสหกรณ์โรงเรียน</h1>
+                <p class="text-slate-500 mt-2 text-sm">กรุณาเข้าสู่ระบบเพื่อใช้งาน</p>
+            </div>
+
+            <div id="login-error" class="hidden bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100 flex items-center gap-2">
+                <i class="ph ph-warning-circle text-lg"></i>
+                <span>ข้อมูลเข้าสู่ระบบไม่ถูกต้อง (รหัสนักเรียนและรหัสผ่านต้องตรงกัน)</span>
+            </div>
+
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label for="student-id" class="block text-sm font-medium text-slate-700 mb-1">เลขประจำตัวนักเรียน</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="ph ph-identification-card text-slate-400 text-lg"></i>
+                        </div>
+                        <input type="text" id="student-id" required placeholder="เช่น 00000"
+                            class="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-primary focus:border-primary sm:text-sm transition-colors">
+                    </div>
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-slate-700 mb-1">รหัสผ่าน</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="ph ph-lock-key text-slate-400 text-lg"></i>
+                        </div>
+                        <input type="password" id="password" required placeholder="••••••••"
+                            class="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-primary focus:border-primary sm:text-sm transition-colors">
+                    </div>
+                </div>
+                
+                <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors mt-6">
+                    <i class="ph ph-sign-in text-lg mr-2"></i>
+                    เข้าสู่ระบบ
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center text-xs text-slate-400 bg-slate-50 p-3 rounded-lg">
+                <p><strong>Demo Mode:</strong> ใช้รหัสนักเรียน <span class="text-slate-600 font-mono">00000</span></p>
+                <p>และรหัสผ่าน <span class="text-slate-600 font-mono">00000</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= VIEW 2: หน้าแดชบอร์ดนักเรียน (DASHBOARD) ================= -->
+    <div id="view-dashboard" class="hidden flex-col h-screen overflow-hidden">
+        
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-primary font-bold text-lg">
+                        <i class="ph ph-user"></i>
+                    </div>
+                    <div>
+                        <h2 id="header-user-name" class="text-sm font-bold text-slate-900 sm:text-base leading-tight">ยินดีต้อนรับ: -</h2>
+                        <p id="header-user-id" class="text-xs text-slate-500">เลขประจำตัว: -</p>
+                    </div>
+                </div>
+                <button id="btn-logout" class="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors text-sm font-medium">
+                    <i class="ph ph-sign-out text-lg"></i>
+                    <span class="hidden sm:inline">ออกจากระบบ</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div class="max-w-5xl mx-auto">
+                
+                <!-- Navigation Tabs -->
+                <div class="flex bg-slate-200 p-1 rounded-xl mb-6 shadow-inner max-w-md mx-auto sm:mx-0">
+                    <button id="tab-home" class="flex-1 py-2 px-4 text-sm font-medium rounded-lg bg-white shadow text-slate-800 flex items-center justify-center gap-2 transition-all">
+                        <i class="ph ph-house"></i>
+                        หน้าหลัก
+                    </button>
+                    <button id="tab-history" class="flex-1 py-2 px-4 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-700 flex items-center justify-center gap-2 transition-all">
+                        <i class="ph ph-clock-counter-clockwise"></i>
+                        ประวัติการซื้อ
+                    </button>
+                </div>
+
+                <!-- Sub-View 1: หน้าหลัก (ข้อมูลผู้ใช้) -->
+                <div id="content-home" class="block animate-fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div class="h-24 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                        <div class="px-6 pb-6 relative">
+                            <div class="w-20 h-20 bg-white rounded-full p-1.5 absolute -top-10 shadow-md border border-slate-100">
+                                <div class="w-full h-full bg-blue-100 rounded-full flex items-center justify-center text-primary text-3xl">
+                                    <i class="ph ph-student"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="pt-12">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-1" id="profile-name">เด็กชายแอดมิน ระบบจัดการ</h3>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 flex items-center gap-3">
+                                        <div class="bg-indigo-100 text-indigo-600 p-2 rounded-lg"><i class="ph ph-identification-card text-xl"></i></div>
+                                        <div>
+                                            <p class="text-xs text-slate-500">เลขประจำตัวนักเรียน</p>
+                                            <p class="font-semibold text-slate-800" id="profile-id">00000</p>
+                                        </div>
+                                    </div>
+                                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 flex items-center gap-3">
+                                        <div class="bg-emerald-100 text-emerald-600 p-2 rounded-lg"><i class="ph ph-users-three text-xl"></i></div>
+                                        <div>
+                                            <p class="text-xs text-slate-500">ระดับชั้น</p>
+                                            <p class="font-semibold text-slate-800" id="profile-class">มัธยมศึกษาปีที่ 1/1</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-6 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-5 flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="bg-yellow-400 text-white p-2.5 rounded-full shadow-sm"><i class="ph ph-star text-2xl"></i></div>
+                                        <div>
+                                            <p class="text-sm text-yellow-800 font-medium">คะแนนสะสมสหกรณ์</p>
+                                            <p class="text-3xl font-bold text-yellow-600" id="profile-points">150 <span class="text-sm font-normal">คะแนน</span></p>
+                                        </div>
+                                    </div>
+                                    <button class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg text-sm font-medium hover:bg-yellow-200 transition-colors">แลกรางวัล</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sub-View 2: ประวัติการซื้อสินค้า (HISTORY) -->
+                <div id="content-history" class="hidden animate-fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[calc(100vh-220px)] sm:h-auto">
+                        <div class="p-4 sm:p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                            <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                <i class="ph ph-receipt text-primary"></i>
+                                รายการล่าสุด
+                            </h3>
+                            <button id="btn-refresh" class="text-slate-400 hover:text-primary transition-colors" title="รีเฟรชข้อมูล">
+                                <i class="ph ph-arrows-clockwise text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div id="history-loading" class="p-10 flex flex-col items-center justify-center text-slate-400">
+                            <div class="loader mb-3"></div>
+                            <p class="text-sm">กำลังโหลดข้อมูล...</p>
+                        </div>
+
+                        <div id="history-empty" class="hidden p-10 flex-col items-center justify-center text-slate-400">
+                            <i class="ph ph-receipt-x text-5xl mb-3 opacity-50"></i>
+                            <p>ไม่พบประวัติการซื้อสินค้า</p>
+                        </div>
+
+                        <div id="history-container" class="hidden overflow-y-auto p-2 sm:p-4 space-y-3">
+                            <!-- Transactions will be injected here via JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= JAVASCRIPT ================= -->
+    <script type="module">
+        // 1. Firebase Configuration & Initialization
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDqEyEHsougf2GLf96TfxvAiKRs0F0haUU",
+            authDomain: "pos-system-1d7d6.firebaseapp.com", // Corrected standard auth domain
+            databaseURL: "https://pos-system-1d7d6-default-rtdb.firebaseio.com", // Added explicit DB URL for Realtime DB
+            projectId: "pos-system-1d7d6",
+            storageBucket: "pos-system-1d7d6.firebasestorage.app",
+            messagingSenderId: "894383861224",
+            appId: "1:894383861224:web:8e07aeb6029af14a22085d",
+            measurementId: "G-KMD9TX4V2W"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // 2. State Management
+        let currentUser = null;
+        
+        // Mock User Database for Demo
+        const mockUserData = {
+            "00000": {
+                name: "เด็กชายแอดมิน ระบบจัดการ",
+                className: "มัธยมศึกษาปีที่ 1/1",
+                points: 150
+            }
+        };
+
+        // 3. DOM Elements
+        // Views
+        const viewLogin = document.getElementById('view-login');
+        const viewDashboard = document.getElementById('view-dashboard');
+        
+        // Login Elements
+        const loginForm = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error');
+        const inputId = document.getElementById('student-id');
+        const inputPass = document.getElementById('password');
+        
+        // Dashboard Elements
+        const btnLogout = document.getElementById('btn-logout');
+        const headerUserName = document.getElementById('header-user-name');
+        const headerUserId = document.getElementById('header-user-id');
+        
+        // Tabs
+        const tabHome = document.getElementById('tab-home');
+        const tabHistory = document.getElementById('tab-history');
+        const contentHome = document.getElementById('content-home');
+        const contentHistory = document.getElementById('content-history');
+        
+        // Profile Elements
+        const profileName = document.getElementById('profile-name');
+        const profileId = document.getElementById('profile-id');
+        const profileClass = document.getElementById('profile-class');
+        const profilePoints = document.getElementById('profile-points');
+
+        // History Elements
+        const historyContainer = document.getElementById('history-container');
+        const historyLoading = document.getElementById('history-loading');
+        const historyEmpty = document.getElementById('history-empty');
+        const btnRefresh = document.getElementById('btn-refresh');
+
+        // 4. Application Logic
+
+        // --- Authentication ---
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = inputId.value.trim();
+            const pass = inputPass.value.trim();
+
+            // Demo Logic: ID must equal Password, and we use "00000" as base mock
+            if (id === pass && id.length > 0) {
+                // Login Success
+                loginError.classList.add('hidden');
+                
+                // Set mock data based on input or fallback to default
+                currentUser = {
+                    id: id,
+                    name: mockUserData[id]?.name || `นักเรียน ${id}`,
+                    className: mockUserData[id]?.className || "ไม่ระบุชั้นเรียน",
+                    points: mockUserData[id]?.points || 0
+                };
+                
+                initDashboard();
+                switchView(viewLogin, viewDashboard);
+            } else {
+                // Login Failed
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        btnLogout.addEventListener('click', () => {
+            // Clear state
+            currentUser = null;
+            loginForm.reset();
+            loginError.classList.add('hidden');
+            
+            // Reset to Home Tab
+            activateTab('home');
+            
+            // Clear History
+            historyContainer.innerHTML = '';
+            
+            switchView(viewDashboard, viewLogin);
+        });
+
+        // --- Dashboard & Navigation ---
+        function initDashboard() {
+            // Update Header
+            headerUserName.textContent = `ยินดีต้อนรับ: ${currentUser.name}`;
+            headerUserId.textContent = `เลขประจำตัว: ${currentUser.id}`;
+            
+            // Update Profile View
+            profileName.textContent = currentUser.name;
+            profileId.textContent = currentUser.id;
+            profileClass.textContent = currentUser.className;
+            profilePoints.innerHTML = `${currentUser.points} <span class="text-sm font-normal">คะแนน</span>`;
+        }
+
+        tabHome.addEventListener('click', () => activateTab('home'));
+        tabHistory.addEventListener('click', () => {
+            activateTab('history');
+            fetchTransactions();
+        });
+        btnRefresh.addEventListener('click', () => fetchTransactions());
+
+        function activateTab(tabName) {
+            // Reset tab styles
+            tabHome.className = 'flex-1 py-2 px-4 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-700 flex items-center justify-center gap-2 transition-all';
+            tabHistory.className = 'flex-1 py-2 px-4 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-700 flex items-center justify-center gap-2 transition-all';
+            
+            contentHome.classList.add('hidden');
+            contentHistory.classList.add('hidden');
+
+            if (tabName === 'home') {
+                tabHome.className = 'flex-1 py-2 px-4 text-sm font-medium rounded-lg bg-white shadow text-slate-800 flex items-center justify-center gap-2 transition-all';
+                contentHome.classList.remove('hidden');
+            } else {
+                tabHistory.className = 'flex-1 py-2 px-4 text-sm font-medium rounded-lg bg-white shadow text-slate-800 flex items-center justify-center gap-2 transition-all';
+                contentHistory.classList.remove('hidden');
+            }
+        }
+
+        function switchView(hideEl, showEl) {
+            hideEl.classList.add('hidden');
+            hideEl.classList.remove('flex', 'flex-col'); // Adjust based on layout
+            
+            showEl.classList.remove('hidden');
+            if(showEl.id === 'view-login') showEl.classList.add('flex');
+            if(showEl.id === 'view-dashboard') showEl.classList.add('flex', 'flex-col');
+        }
+
+        // --- Firebase Data Fetching ---
+        async function fetchTransactions() {
+            if (!currentUser) return;
+            
+            historyLoading.classList.remove('hidden');
+            historyEmpty.classList.add('hidden');
+            historyContainer.classList.add('hidden');
+            historyContainer.innerHTML = '';
+
+            try {
+                const dbRef = ref(db, 'transactions');
+                const snapshot = await get(dbRef);
+                
+                if (snapshot.exists()) {
+                    const allData = snapshot.val();
+                    
+                    // Parse and Filter data client-side
+                    const userTransactions = [];
+                    
+                    // Handle object map or array structure from Firebase
+                    Object.keys(allData).forEach(key => {
+                        const tx = allData[key];
+                        // strict string comparison
+                        if (String(tx.memberId) === String(currentUser.id)) {
+                            // Add key to data for reference
+                            userTransactions.push({ ...tx, _id: key });
+                        }
+                    });
+
+                    // Sort by timestamp descending (newest first)
+                    userTransactions.sort((a, b) => {
+                        const dateA = a.timestamp || a.createdAt || 0;
+                        const dateB = b.timestamp || b.createdAt || 0;
+                        return new Date(dateB) - new Date(dateA);
+                    });
+
+                    renderHistory(userTransactions);
+                } else {
+                    showEmptyHistory();
+                }
+            } catch (error) {
+                console.error("Error fetching data: ", error);
+                // Fallback to empty state on error
+                showEmptyHistory();
+            }
+        }
+
+        function showEmptyHistory() {
+            historyLoading.classList.add('hidden');
+            historyEmpty.classList.remove('hidden');
+            historyContainer.classList.add('hidden');
+        }
+
+        function renderHistory(transactions) {
+            historyLoading.classList.add('hidden');
+            
+            if (transactions.length === 0) {
+                historyEmpty.classList.remove('hidden');
+                return;
+            }
+
+            historyContainer.classList.remove('hidden');
+
+            transactions.forEach((tx, index) => {
+                // Parse Date
+                let dateStr = "ไม่ระบุเวลา";
+                const ts = tx.timestamp || tx.createdAt || tx.date;
+                if (ts) {
+                    const dateObj = new Date(ts);
+                    dateStr = dateObj.toLocaleDateString('th-TH', { 
+                        year: 'numeric', month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                }
+
+                // Ensure total exists
+                const totalAmount = tx.total || tx.totalAmount || tx.netTotal || 0;
+                const items = tx.items || [];
+
+                // Create Item element
+                const card = document.createElement('div');
+                card.className = "bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-slate-300 transition-colors shadow-sm";
+                
+                // Card Header (Clickable)
+                const headerId = `acc-header-${index}`;
+                const contentId = `acc-content-${index}`;
+                
+                card.innerHTML = `
+                    <div class="p-4 cursor-pointer flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition-colors select-none" onclick="toggleAccordion('${contentId}', 'icon-${index}')">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+                                <i class="ph ph-shopping-bag text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-slate-800">${dateStr}</p>
+                                <p class="text-xs text-slate-500">รหัสอ้างอิง: ${tx.receiptNo || tx.id || tx._id?.substring(0,6) || '-'}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="text-right">
+                                <p class="font-bold text-slate-900">฿${parseFloat(totalAmount).toLocaleString('th-TH', {minimumFractionDigits: 2})}</p>
+                            </div>
+                            <div class="text-slate-400 bg-white border border-slate-200 w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
+                                <i id="icon-${index}" class="ph ph-caret-down transition-transform duration-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Accordion Content (Receipt Details) -->
+                    <div id="${contentId}" class="accordion-content border-t border-slate-100 bg-white">
+                        <div class="p-4 sm:p-5">
+                            <div class="flex justify-between items-center mb-3 pb-3 border-b border-dashed border-slate-200">
+                                <span class="text-sm font-bold text-slate-700">รายการสินค้า</span>
+                                <span class="text-xs text-slate-500">${items.length} รายการ</span>
+                            </div>
+                            
+                            <div class="space-y-3">
+                                ${items.map(item => {
+                                    const itemName = item.name || item.productName || "สินค้าไม่ทราบชื่อ";
+                                    const qty = item.qty || item.quantity || 1;
+                                    const price = item.price || 0;
+                                    const sub = item.subtotal || (qty * price);
+                                    
+                                    return `
+                                    <div class="flex justify-between text-sm">
+                                        <div class="flex gap-2">
+                                            <span class="text-slate-500 w-6">${qty}x</span>
+                                            <span class="text-slate-800">${itemName}</span>
+                                        </div>
+                                        <span class="text-slate-600">฿${parseFloat(sub).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                                    </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            
+                            <div class="mt-4 pt-3 border-t border-slate-200 flex justify-between items-center bg-slate-50 -mx-4 -mb-4 p-4 rounded-b-xl">
+                                <span class="font-bold text-slate-800 text-sm">ยอดสุทธิ</span>
+                                <span class="font-bold text-lg text-primary">฿${parseFloat(totalAmount).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                historyContainer.appendChild(card);
+            });
+        }
+
+        // Global function for inline onclick handler
+        window.toggleAccordion = function(contentId, iconId) {
+            const content = document.getElementById(contentId);
+            const icon = document.getElementById(iconId);
+            
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                content.classList.add('open');
+                icon.style.transform = 'rotate(180deg)';
+            }
+        };
+
+    </script>
+</body>
+</html>
